@@ -8,7 +8,7 @@ import numpy as np
 from transformers import Wav2Vec2FeatureExtractor
 
 from models.float.CFMT_gaze_smirk import ConditionFMT
-from models.networks.model_bestdecoder import IMFModel
+from models.networks.model_adaptive import IMFModel
 from options.base_options import BaseOptions
 from PIL import Image
 import torchvision.transforms as transforms
@@ -97,7 +97,7 @@ class InferenceAgent:
 		self.data_processor = DataProcessor(opt)
 
 	def load_model(self) -> None:
-		self.ae = IMFModel()
+		self.ae = IMFModel(self.opt)
 		self.fm = ConditionFMT(self.opt)
 		#import pdb;pdb.set_trace()
 		motion_audioencoder_state_dict = torch.load(opt.imf_path, map_location="cpu")["state_dict"]
@@ -179,12 +179,12 @@ class InferenceAgent:
 
 		if verbose: print(f"> [Done] Preprocess.")
 
-		f_r, t_r = self.encode_image_into_latent(data['s'].to(self.opt.rank))
+		f_r, t_r, g_r = self.encode_image_into_latent(data['s'].to(self.opt.rank))
 		data["ref_x"] = t_r
 
 		sample = self.fm.sample(data, a_cfg_scale = a_cfg_scale,  nfe = nfe, seed = seed)
 		
-		data_out = self.decode_latent_into_image(f_r = f_r, t_r = t_r, t_c = sample)
+		data_out = self.decode_latent_into_image(f_r = f_r, t_r = t_r, t_c = sample, g_r = g_r)
 		
 		res_video_path = self.save_video(data_out["d_hat"], res_video_path, audio_path)
 		if verbose: print(f"> [Done] result saved at {res_video_path}")
@@ -193,21 +193,23 @@ class InferenceAgent:
 	######## Motion Encoder - Decoder ########
 	@torch.no_grad()
 	def encode_image_into_latent(self, x: torch.Tensor) -> list:
-		f = self.ae.dense_feature_encoder(x)
+		f, g = self.ae.dense_feature_encoder(x)
 		t = self.ae.latent_token_encoder(x)
-		return f, t
+		return f, t, g
 	
 	def decode_latent_into_motion(self, t: torch.Tensor):
 		return self.ae.latent_token_decoder(t)
 	
 	@torch.no_grad()
-	def decode_latent_into_image(self, f_r: torch.Tensor , t_r: torch.Tensor, t_c: torch.Tensor) -> dict:
+	def decode_latent_into_image(self, f_r: torch.Tensor , t_r: torch.Tensor, t_c: torch.Tensor, g_r: torch.Tensor) -> dict:
 		B, T = t_c.shape[0], t_c.shape[1]
-		m_r = self.decode_latent_into_motion(t_r)
+		ta_r = self.ae.adapt(t_r, g_r)
+		m_r = self.decode_latent_into_motion(ta_r)
 		d_hat = []
 		for t in range(T):
-			m_c = self.decode_latent_into_motion(t_c[:,t,...])
-			img = self.ae.ima(m_c, m_r, f_r)
+			ta_c = self.ae.adapt(t_c[:,t,...], g_r)
+			m_c = self.decode_latent_into_motion(ta_c)
+			img = self.ae.decode(m_c, m_r, f_r)
 			d_hat.append(img)
 		d_hat = torch.stack(d_hat, dim=1).squeeze()
 		return {'d_hat': d_hat}
@@ -239,6 +241,8 @@ class InferenceOptions(BaseOptions):
 		parser.add_argument("--dim_motion", type=int, default=32)
 		parser.add_argument("--dim_c", type=int, default=32)
 		parser.add_argument('--dim_w', type=int, default=32, help='face dimension')
+		parser.add_argument('--swin_res_threshold', type=int, default=128, help='Resolution threshold to switch to Swin Attention.')
+		parser.add_argument('--window_size', type=int, default=8, help='Window size for Swin Attention.')
 		return parser
 
 
