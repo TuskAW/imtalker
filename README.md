@@ -1,69 +1,108 @@
+<div align="center">
+<p align="center">
+  <h1>IMTalker: Efficient Audio-driven Talking Face Generation with Implicit Motion Transfer</h1>
 
-# IMTalk: Implicit Motion Learning for Efficient Audio-driven Talking Face Generation
+  [![Paper](https://img.shields.io/badge/Paper-arXiv-b31b1b?logo=arxiv&logoColor=white)](https://arxiv.org/abs/000000)
+  [![Hugging Face Model](https://img.shields.io/badge/Model-HuggingFace-yellow?logo=huggingface)](https://huggingface.co/cbsjtu01/IMTalker)
+  [![Hugging Face Space](https://img.shields.io/badge/Space-HuggingFace-blueviolet?logo=huggingface)](https://huggingface.co/spaces/chenxie95/MeanAudio)
+  [![Project](https://img.shields.io/badge/Website-Visit-orange?logo=googlechrome&logoColor=white)](https://cbsjtu01.github.io/IMTalk/)
 
 
-## Environment
-```
-conda create -n IMTalk python=3.10.18 
-conda activate IMTalk
+</p>
+</div>
+
+## 📖 Overview
+IMTalker accepts diverse portrait styles and achieves 40 FPS for video-driven and 42 FPS for audio-driven talking-face generation when tested on an NVIDIA RTX 4090 GPU at 512 × 512 resolution. It also enables diverse controllability by allowing precise head-pose and eye-gaze inputs alongside audio
+
+<div align="center">
+  <img src="assets/teaser.png" alt="" width="1000">
+</div>
+
+## 📢 News
+- **[2025.11]** 🚀 The inference code and pretrained weights are released!
+## 🛠️ Installation
+
+### 1. Environment Setup
+
+```bash
+conda create -n IMTalker python=3.10
+conda activate IMTalker
 pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
+```
+
+**2. Install with pip:**
+
+```bash
+git clone https://github.com/cbsjtu01/IMTalker.git
+cd IMTalker
 pip install -r requirement.txt
 ```
 
-## Weight
-```
+## 📦 Model Zoo
+
+Please download the pretrained models and place them in the `./checkpoints` directory.
+
+| Component | Checkpoint | Description | Download |
+| :--- | :--- | :--- | :---: |
+| **Audio Encoder** | `wav2vec2-base-960h` | Facebook Wav2Vec2 Base model | [🤗 Link](https://huggingface.co/cbsjtu01/IMTalker/tree/main/wav2vec2-base-960h) |
+| **Generator** | `generator.ckpt` | Flow Matching Generator | [🤗 Link](https://huggingface.co/cbsjtu01/IMTalker/blob/main/generator.ckpt) |
+| **Renderer** | `renderer.ckpt` | IMF-based Renderer | [🤗 Link](https://huggingface.co/cbsjtu01/IMTalker/blob/main/renderer.ckpt) |
+### 📂 Directory Structure
+Ensure your file structure looks like this after downloading:
+
+```text
 ./checkpoints
-|-- imf.ckpt                                       # IMF model
-|-- fm.ckpt                                        # flow matching model
-|-- wav2vec2-base-960h/                             # audio encoder
-|   |-- .gitattributes
-|   |-- config.json
-|   |-- feature_extractor_config.json
-|   |-- model.safetensors
-|   |-- preprocessor_config.json
-|   |-- pytorch_model.bin
-|   |-- README.md
-|   |-- special_tokens_map.json
-|   |-- tf_model.h5
-|   |-- tokenizer_config.json
-|   '-- vocab.json
+├── renderer.ckpt                     # The main renderer
+├── generator.ckpt                    # The main generator
+└── wav2vec2-base-960h/               # Audio encoder folder
+    ├── config.json
+    ├── model.safetensors
+    └── ...
 ```
-## Download
-imf.ckpt fm.ckpt last-v4.ckpt: 
 
-百度网盘：链接:https://pan.baidu.com/s/1qNR8qSkZ7jaP3NU6XS03Uw?pwd=rwp4 提取码:rwp4 复制这段内容后打开百度网盘手机App，操作更方便哦
+## 🚀 Inference
 
-通过网盘分享的文件：last-v4.ckpt 链接: https://pan.baidu.com/s/17JYXYdOKZlVOkUlSoRDAPQ?pwd=7mna 提取码: 7mna 
+### 1. Audio-driven Inference
+Generate a talking face from a source image and an audio file.
 
-wav2vec2: 
+```bash
+python generator/generate.py \
+    --ref_path "./assets/source_image.jpg" \
+    --aud_path "./assets/input_audio.wav" \
+    --res_dir "./results/" \
+    --generator_path "./checkpoints/generator.ckpt" \
+    --renderer_path "./checkpoints/renderer.ckpt" \
+    --a_cfg_scale 3 \
+    --crop
 ```
-huggingface-cli download facebook/wav2vec2-base-960h --local-dir ./checkpoints/wav2vec2-base-960h
+### 2. Video-driven Inference
+Generate a talking face from a source image and an audio file.
+
+```bash
+python renderer/inference.py \
+    --source_path "./assets/source_image.jpg" \
+    --driving_path "./assets/driving_video.mp4" \
+    --save_path "./results/" \
+    --renderer_path "./checkpoints/renderer.ckpt" \
+    --crop
 ```
-## audio-driven Inference
+## 📜 Citation
+If you find our work useful for your research, please consider citing:
+
+```bibtex
+@article{imtalker2025,
+  title={IMTalker: Efficient Audio-driven Talking Face Generation with Implicit Motion Transfer},
+  author={Bo, Chen and Xie, Chen}, 
+  journal={arXiv preprint arXiv:25xx.xxxxx},
+  year={2025}
+}
 ```
-python fm_spade/generate_pose.py 
-        --input_root "path/to/image_audio"  
-        --imf_path "./checkpoints/imf.ckpt"
-        --fm_path "./checkpoints/fm_ckpt"
-        --no_crop 
-        --a_cfg_scale 2 
-        --res_dir "./exps/" 
-        --nfe 10
-```
-## video-driven Inference
-```
-python IMF_best/inference.py 
-        --save_folder "./test" 
-        --model_path "./chechpoints/last-v4.pt" 
-        --input_path "path/to/videos"
-```
-path/to/videos目录长这样：
-```
-videos
-|-- video_0/
-|   |-- source_image
-|   |-- drive_video
-|-- video_1/
-|   |-- source_image
-|   |-- drive_video
-|...
+
+## 🙏 Acknowledgement
+
+We express our sincerest gratitude to the excellent previous works that inspired this project:
+
+- **[IMF](https://github.com/ueoo/IMF)**: We adapted the framework and training pipeline from IMF and its reproduction code.
+- **[FLOAT](https://github.com/deepbrainai-research/float)**: We referenced the model architecture and implementation of Float for our generator.
+- **[Wav2Vec2](https://huggingface.co/facebook/wav2vec2-base-960h)**: We utilized Wav2Vec as our audio encoder.
+- **[Face-Alignment](https://github.com/1adrianb/face-alignment)**: We used FaceAlignment for cropping images and videos.
