@@ -5,7 +5,7 @@
   [![Paper](https://img.shields.io/badge/Paper-arXiv-b31b1b?logo=arxiv&logoColor=white)](https://arxiv.org/abs/000000)
   [![Hugging Face Model](https://img.shields.io/badge/Model-HuggingFace-yellow?logo=huggingface)](https://huggingface.co/cbsjtu01/IMTalker)
   [![Hugging Face Space](https://img.shields.io/badge/Space-HuggingFace-blueviolet?logo=huggingface)](https://huggingface.co/spaces/chenxie95/IMTalker)
-  [![Project](https://img.shields.io/badge/Website-Visit-orange?logo=googlechrome&logoColor=white)](https://cbsjtu01.github.io/IMTalker/)
+  [![demo](https://img.shields.io/badge/GitHub-Demo-orange.svg)](https://cbsjtu01.github.io/IMTalker/)
 
 
 </p>
